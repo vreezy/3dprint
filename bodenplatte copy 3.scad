@@ -8,32 +8,27 @@
 base_length = 150;  // bottom edge of the green triangle (V -> tip)
 height      = 6;    // shared vertical edge between the two triangles
 top_length  = 6;    // horizontal top edge of the red triangle (A -> P)
-depth       = 200;  // extrusion depth of the part
-tip_height  = 1;    // minimum material thickness at the tip (vertical face, mm)
+depth       = 240;  // extrusion depth of the part
 
 orientation = "print";  // "print" = base_length edge on the floor, "cnc" = x edge (long taper face) on the floor
 
 tread        = "raised"; // texture on the x face: "none" | "raised" (checker bumps, for 3D print) | "grooves" (V-grid, for CNC)
 tread_height = 1;         // bump height / groove depth
-tread_pitch  = 17;        // grid spacing of the pattern
+tread_pitch  = 16;        // grid spacing of the pattern
 rib_length   = 12;        // raised rib: length
-rib_width    = 2.2;       // raised rib: width (must stay > 2 * tread_height)
-// tread_margin is auto-computed in the Computed section below
+rib_width    = 2.5;       // raised rib: width (must stay > 2 * tread_height)
+tread_margin = 40;        // untextured zone at the thin tip (part is thinner than the pattern depth there); 0 = full coverage
 
 draft_mode  = false;             // fast render while developing
 $fn         = draft_mode ? 30 : 60;
 
 // ---------- Computed (the missing values from the sketch) ----------
-// taper face P->T_top: rise = (height - tip_height), not height, since tip no longer reaches zero
-x = sqrt(base_length * base_length + (height - tip_height) * (height - tip_height));
-y = sqrt(top_length * top_length + height * height);   // red hypotenuse (A -> P)
-taper_angle  = atan((height - tip_height) / base_length); // actual slope of the taper face
-face_x0      = -height * sin(taper_angle);              // left end of the x face in cnc frame (thick end)
-// bare zone at the tip: x-face length where perpendicular material < tread_height
-tread_margin = (height == tip_height) ? 0 :
-    max(0, x * (tread_height / cos(taper_angle) - tip_height) / (height - tip_height));
+x = sqrt(base_length * base_length + height * height); // long taper edge
+y = sqrt(top_length * top_length + height * height);   // red hypotenuse
+taper_angle = atan(height / base_length);              // slope of the x edge, ~2.29 deg
+face_x0     = -height * sin(taper_angle);              // left end of the x face in cnc frame (thick end)
 
-echo(str("x (taper face P->T) = ", x, " mm"));
+echo(str("x (long taper edge) = ", x, " mm"));
 echo(str("y (red hypotenuse)  = ", y, " mm"));
 
 // ---------- Profile (side view, origin at V = bottom of the shared edge) ----------
@@ -45,9 +40,8 @@ echo(str("y (red hypotenuse)  = ", y, " mm"));
 profile_points = [
     [-top_length, height],   // A: top-left
     [0,           height],   // P: top of shared edge
-    [base_length, tip_height], // T_top: tip, top of 1 mm end face
-    [base_length, 0],          // T_bot: tip, bottom (base_length unchanged)
-    [0,           0]           // V: bottom of shared edge
+    [base_length, 0],        // T: tip
+    [0,           0]         // V: bottom of shared edge
 ];
 
 // ---------- Part ----------
