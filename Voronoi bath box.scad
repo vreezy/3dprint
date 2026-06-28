@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════
-//  VORONOI SHOWER SHELF  ·  160 × 160 × 80 mm
+//  VORONOI Bath Box  ·  parameterized open-top box with Voronoi pattern
 //  Parametric · PETG optimized · open-top box
 // ═══════════════════════════════════════════════════════
 
@@ -11,11 +11,23 @@ WT = 3.2;   // wall thickness mm
 FT = 3.2;   // floor thickness mm
 CR = 5;     // vertical corner radius mm
 
+/* [Patterns  —  write "voronoi" or a filename e.g. "logo.svg"] */
+// Place SVG files next to this .scad file.
+// Expected SVG canvas sizes (in mm, no scaling applied):
+//   NORTH / SOUTH  →  AW × AH  =  (W−2×BORDER) × (H−FT−2×BORDER)
+//   EAST  / WEST   →  AH × AD  =  (H−FT−2×BORDER) × (D−2×BORDER)
+//   BOTTOM         →  AW × AD  =  (W−2×BORDER) × (D−2×BORDER)
+NORTH  = "voronoi";  // back  wall  (y = D face)
+SOUTH  = "voronoi";  // front wall  (y = 0 face)
+EAST   = "voronoi";  // right wall  (x = W face)
+WEST   = "voronoi";  // left  wall  (x = 0 face)
+BOTTOM = "voronoi";  // floor
+
 /* [Voronoi] */
 SEED      = 42;   // random seed (change for different pattern)
 CELL_SIZE = 20;   // cell size mm  →  hole ≈ CELL_SIZE − 2×INSET
 INSET     = 1.5;  // half-web thickness mm  (web between holes = 2×INSET)
-BORDER    = 12;   // solid frame on all sides including top rim mm
+BORDER    = 8;   // solid frame on all sides including top rim mm
 
 /* [Quality  —  full CGAL render may take several minutes] */
 $fn = 30;
@@ -90,36 +102,47 @@ module inner_cavity() {
     }
 }
 
-// ── Voronoi cutters ───────────────────────────────────
+// ── Pattern dispatcher ────────────────────────────────
+// name == "voronoi"  →  Voronoi grid
+// name == "*.svg"    →  import that file (place it next to this .scad)
+
+module _pattern(name, w, h, seed) {
+    if (name == "voronoi")
+        v_holes(w, h, CELL_SIZE, INSET, seed);
+    else
+        import(name);
+}
+
+// ── Wall / floor cutters ──────────────────────────────
 
 module floor_cut() {
     translate([BORDER, BORDER, -0.01])
     linear_extrude(FT+0.02)
-    v_holes(AW, AD, CELL_SIZE, INSET, SEED);
+    _pattern(BOTTOM, AW, AD, SEED);
 }
 
-module front_wall_cut() {
+module front_wall_cut() {   // SOUTH  (y = 0)
     translate([BORDER, WT+0.01, FT+BORDER])
     rotate([90,0,0]) linear_extrude(WT+0.02)
-    v_holes(AW, AH, CELL_SIZE, INSET, SEED+1);
+    _pattern(SOUTH, AW, AH, SEED+1);
 }
 
-module back_wall_cut() {
+module back_wall_cut() {    // NORTH  (y = D)
     translate([BORDER, D+0.01, FT+BORDER])
     rotate([90,0,0]) linear_extrude(WT+0.02)
-    v_holes(AW, AH, CELL_SIZE, INSET, SEED+2);
+    _pattern(NORTH, AW, AH, SEED+2);
 }
 
-module left_wall_cut() {
+module left_wall_cut() {    // WEST   (x = 0)
     translate([WT+0.01, BORDER, FT+BORDER])
     rotate([0,-90,0]) linear_extrude(WT+0.02)
-    v_holes(AH, AD, CELL_SIZE, INSET, SEED+3);
+    _pattern(WEST, AH, AD, SEED+3);
 }
 
-module right_wall_cut() {
+module right_wall_cut() {   // EAST   (x = W)
     translate([W+0.01, BORDER, FT+BORDER])
     rotate([0,-90,0]) linear_extrude(WT+0.02)
-    v_holes(AH, AD, CELL_SIZE, INSET, SEED+4);
+    _pattern(EAST, AH, AD, SEED+4);
 }
 
 // ── Assemble ──────────────────────────────────────────
